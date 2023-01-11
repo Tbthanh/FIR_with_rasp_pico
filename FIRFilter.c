@@ -1,6 +1,12 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
+#include "FIRFilter.h"
 
+static float FIR_IMPULSE_RESPONSE=[FIR_FILTER_LENGTH] = {}; //array contain impulse response
+
+void FIRFilter_Init(FIRFilter *fir) {
+
+}
 int main() {
 
     const uint led_pin = 25;
