@@ -67,10 +67,6 @@ float FIRFilter_Update(FIRFilter *fir, float inp)   {/*the actual hard as fire s
 /*create a firfilter struct*/
 FIRFilter tempout;
 
-/*initialise firfilter*/
-FIRFilter_Init(&tempout); /*resting the circuler buffer*/
-
-
 int main() {
 
     //to initialize the input output
@@ -81,18 +77,27 @@ int main() {
     adc_set_temp_sensor_enabled(true);
     adc_select_input(4); //actualy the 5th chanel what the phuc 
 
+    /*initialise firfilter*/
+    FIRFilter_Init(&tempout); /*resting the circuler buffer*/
+
     //infinite loop
     while (1) {
 
         uint16_t raw = adc_read();
-        const float conversion = 3.3f / (1 << 12);
-        float voltage = raw * conversion; //basicly doing some filtered stuff
-        float temperature = 27 - (voltage - 0.706) / 0.001721; //adc to temp
-        
-        /*Using the filter, in the guide, he's using an stm custom board so there sure are a lot of trouble here*/
-        FIRFilter_Update(&tempout, raw);
+        // const float conversion = 3.3f / (1 << 12);
+        // float voltage = raw * conversion; //basicly doing some filtered stuff
+        // float temperature = 27 - (voltage - 0.706) / 0.001721; //adc to temp
+        // printf("Temperature:", temperature);
 
-        printf("Temperature:", temperature, "output =");
+        /*Using the filter, in the guide, he's using an stm32 custom board so there sure are a lot of trouble here, 
+        seems that the driver that he write for the accelometer is XD*/
+        
+        FIRFilter_Update(&tempout, raw); //using lowpass filter something something that I'll figure out
+        
+        /*push raw and filtered data through serial*/
+        printf("%.4f,%.4f\r\n", raw, tempout.out);
+
+        
         sleep_ms(1000);
     }
     

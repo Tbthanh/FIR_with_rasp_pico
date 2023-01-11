@@ -13,22 +13,22 @@ set(CMAKE_CXX_STANDARD 17)
 pico_sdk_init()
 
 # Tell CMake where to find the executable source file
-add_executable(${FIRFilter} 
+add_executable(FIRFilter 
     FIRFilter.c
 )
 
 # Create map/bin/hex/uf2 files
-pico_add_extra_outputs(${FIRFilter})
+pico_add_extra_outputs(FIRFilter)
 
 # Link to pico_stdlib (gpio, time, etc. functions)
-target_link_libraries(${FIRFilter} 
+target_link_libraries(FIRFilter 
     pico_stdlib
     hardware_i2c
     hardware_adc
 )
 
 # Enable usb output, disable uart output
-pico_enable_stdio_usb(${FIRFilter} 1)
-pico_enable_stdio_uart(${FIRFilter} 0)
+pico_enable_stdio_usb(FIRFilter 1)
+pico_enable_stdio_uart(FIRFilter 0)
 
 #com8
