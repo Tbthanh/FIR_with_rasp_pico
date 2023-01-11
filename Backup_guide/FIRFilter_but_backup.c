@@ -64,13 +64,6 @@ float FIRFilter_Update(FIRFilter *fir, float inp)   {/*the actual hard as fire s
     return fir->out;
 }
 
-/*create a firfilter struct*/
-FIRFilter tempout;
-
-/*initialise firfilter*/
-FIRFilter_Init(&tempout); /*resting the circuler buffer*/
-
-
 int main() {
 
     //to initialize the input output
@@ -88,10 +81,7 @@ int main() {
         const float conversion = 3.3f / (1 << 12);
         float voltage = raw * conversion; //basicly doing some filtered stuff
         float temperature = 27 - (voltage - 0.706) / 0.001721; //adc to temp
-        
-        /*Using the filter, in the guide, he's using an stm custom board so there sure are a lot of trouble here*/
-        FIRFilter_Update(&tempout, raw);
-
+        output = 
         printf("Temperature:", temperature, "output =");
         sleep_ms(1000);
     }
