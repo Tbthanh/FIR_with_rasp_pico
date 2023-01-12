@@ -127,79 +127,79 @@ float FIRFilter_Update(FIRFilter *fir, float inp)   {/*the actual hard as fire s
 // I2C address
 static const uint8_t PCF8591_ADDR = 0x48;
 
-//d
+//define the pin to ...
 #define I2C_PORT i2c0
 
-// Registers - dont actually understand this
-static const uint8_t REG_DEVID = 0x00;
-static const uint8_t REG_POWER_CTL = 0x2D;
-static const uint8_t REG_DATAX0 = 0x32;
+// // Registers - dont actually understand this
+// static const uint8_t REG_DEVID = 0x00;
+// static const uint8_t REG_POWER_CTL = 0x2D;
+// static const uint8_t REG_DATAX0 = 0x32;
 
-// Other constants - also this too
-static const uint8_t DEVID = 0xE5;
+// // Other constants - also this too
+// static const uint8_t DEVID = 0xE5;
 
-/* I2C Function Declarations*/
-int reg_write(i2c_inst_t *i2c, 
-                const uint addr, 
-                const uint8_t reg, 
-                uint8_t *buf,
-                const uint8_t nbytes);
+// /* I2C Function Declarations*/
+// int reg_write(i2c_inst_t *i2c, 
+//                 const uint addr, 
+//                 const uint8_t reg, 
+//                 uint8_t *buf,
+//                 const uint8_t nbytes);
 
-int reg_read(   i2c_inst_t *i2c,
-                const uint addr,
-                const uint8_t reg,
-                uint8_t *buf,
-                const uint8_t nbytes);
+// int reg_read(   i2c_inst_t *i2c,
+//                 const uint addr,
+//                 const uint8_t reg,
+//                 uint8_t *buf,
+//                 const uint8_t nbytes);
 
-/* I2C Function Definitions */
-// Write 1 byte to the specified register
-int reg_write(  i2c_inst_t *i2c, 
-                const uint addr, 
-                const uint8_t reg, 
-                uint8_t *buf,
-                const uint8_t nbytes) {
+// /* I2C Function Definitions */
+// // Write 1 byte to the specified register
+// int reg_write(  i2c_inst_t *i2c, 
+//                 const uint addr, 
+//                 const uint8_t reg, 
+//                 uint8_t *buf,
+//                 const uint8_t nbytes) {
 
-    int num_bytes_read = 0;
-    uint8_t msg[nbytes + 1];
+//     int num_bytes_read = 0;
+//     uint8_t msg[nbytes + 1];
 
-    // Check to make sure caller is sending 1 or more bytes
-    if (nbytes < 1) {
-        return 0;
-    }
+//     // Check to make sure caller is sending 1 or more bytes
+//     if (nbytes < 1) {
+//         return 0;
+//     }
 
-    // Append register address to front of data packet
-    msg[0] = reg;
-    for (int i = 0; i < nbytes; i++) {
-        msg[i + 1] = buf[i];
-    }
+//     // Append register address to front of data packet
+//     msg[0] = reg;
+//     for (int i = 0; i < nbytes; i++) {
+//         msg[i + 1] = buf[i];
+//     }
 
-    // Write data to register(s) over I2C
-    i2c_write_blocking(i2c, addr, msg, (nbytes + 1), false);
+//     // Write data to register(s) over I2C
+//     i2c_write_blocking(i2c, addr, msg, (nbytes + 1), false);
 
-    return num_bytes_read;
-}
+//     return num_bytes_read;
+// }
 
-// Read byte(s) from specified register. If nbytes > 1, read from consecutive
-// registers.
-int reg_read(  i2c_inst_t *i2c,
-                const uint addr,
-                const uint8_t reg,
-                uint8_t *buf,
-                const uint8_t nbytes) {
+// // Read byte(s) from specified register. If nbytes > 1, read from consecutive
+// // registers.
+// int reg_read(  i2c_inst_t *i2c,
+//                 const uint addr,
+//                 const uint8_t reg,
+//                 uint8_t *buf,
+//                 const uint8_t nbytes) {
 
-    int num_bytes_read = 0;
+//     int num_bytes_read = 0;
 
-    // Check to make sure caller is asking for 1 or more bytes
-    if (nbytes < 1) {
-        return 0;
-    }
+//     // Check to make sure caller is asking for 1 or more bytes
+//     if (nbytes < 1) {
+//         return 0;
+//     }
 
-    // Read data from register(s) over I2C
-    i2c_write_blocking(i2c, addr, &reg, 1, true);
-    num_bytes_read = i2c_read_blocking(i2c, addr, buf, nbytes, false);
+//     // Read data from register(s) over I2C
+//     i2c_write_blocking(i2c, addr, &reg, 1, true);
+//     num_bytes_read = i2c_read_blocking(i2c, addr, buf, nbytes, false);
 
-    return num_bytes_read;
-}
+//     return num_bytes_read;
+// }
 
 /*create a firfilter struct*/
 FIRFilter tempout;
@@ -218,44 +218,17 @@ int main() {
     FIRFilter_Init(&tempout); /*resting the circuler buffer*/
 
     /*I2C parts*/
-    // I2C Pins
-    const uint sda_pin = 16;
-    const uint scl_pin = 17;
-
-    // Ports
-    i2c_inst_t *i2c = i2c0;
-
-    // Buffer to store raw I2C reads
-    uint8_t data[6];
-
     //Initialize I2C port at 400 kHz
-    i2c_init(i2c, 1000 * 1000);
+    i2c_init(I2C_PORT, 400 * 1000);
 
-    // Initialize I2C pins
-    gpio_set_function(sda_pin, GPIO_FUNC_I2C);
-    gpio_set_function(scl_pin, GPIO_FUNC_I2C);
+    // I2C Pins
+    gpio_set_function(16, GPIO_FUNC_I2C);
+    gpio_set_function(17, GPIO_FUNC_I2C);
+    gpio_pull_up(16);
+    gpio_pull_up(17);
 
-    // Read device ID to make sure that we can communicate with the ADXL343
-    reg_read(i2c, PCF8591_ADDR, REG_DEVID, data, 1);
-    if (data[0] != DEVID) {
-        printf("ERROR: Could not communicate with PCF8591\r\n");
-        while (true);
-    }
-
-    // Read Power Control register
-    reg_read(i2c, PCF8591_ADDR, REG_POWER_CTL, data, 1);
-    printf("0x%02X\r\n", data[0]);
-
-    // Tell ADXL343 to start taking measurements by setting Measure bit to high
-    data[0] |= (1 << 3);
-    reg_write(i2c, PCF8591_ADDR, REG_POWER_CTL, &data[0], 1);
-
-    // Test: read Power Control register back to make sure Measure bit was set
-    reg_read(i2c, PCF8591_ADDR, REG_POWER_CTL, data, 1);
-    printf("0x%02X\r\n", data[0]);
-
-    // Wait before taking measurements
-    sleep_ms(2000);
+    //Call PCF8591 Initialize function
+    
 
     //infinite loop
     while (1) {
