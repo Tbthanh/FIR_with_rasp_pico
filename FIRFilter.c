@@ -2,7 +2,7 @@
 #include "pico/stdlib.h"
 #include "hardware/i2c.h"
 #include "hardware/adc.h"
-#include "FIRFilter.h"
+#include "FIRFilter.h" //because this is not a standard library
 
 /* *************************************** FIRFilter function declaration *************************************** */
 
