@@ -3,6 +3,7 @@
 #include "hardware/i2c.h"
 #include "hardware/adc.h"
 #include "FIRFilter.h" //because this is not a standard library
+#include "I2CFUNCTION.h"
 
 /* *************************************** FIRFilter function declaration *************************************** */
 
@@ -126,32 +127,22 @@ float FIRFilter_Update(FIRFilter *fir, float inp)   {/*the actual hard as fire s
 
 // I2C address
 static const uint8_t PCF8591_ADDR = 0x48;
+static const uint8_t ADXL345_ADDR = 0x53;
 
 //define the pin to ...
-#define I2C_PORT i2c0
+#define I2C_PORT i2c1
 
-// Registers - dont actually understand this
-static const uint8_t REG_DEVID = 0x00;
-static const uint8_t REG_POWER_CTL = 0x2D;
-static const uint8_t REG_DATAX0 = 0x32;
+// Registers - read the document folder for more detail
+static const uint8_t REG_DEVID = 0x00;          //read device ID
+static const uint8_t REG_POWER_CTL = 0x2D;      //powersaving feature control
+static const uint8_t REG_DATAX0 = 0x32;         //X-Axis data 0
 
 // Other constants - also this too
-static const uint8_t DEVID = 0xE5;
+static const uint8_t DEVID = 0xE5;              //DEVID register fixed device ID code
+static const float SENSITIVITY_2G = 1.0 / 256;  // (g/LSB)
+static const float EARTH_GRAVITY = 9.80665;     // Earth's gravity in [m/s^2]
 
-/* I2C Function Declarations*/
-int reg_write(i2c_inst_t *i2c, 
-                const uint addr, 
-                const uint8_t reg, 
-                uint8_t *buf,
-                const uint8_t nbytes);
-
-int reg_read(   i2c_inst_t *i2c,
-                const uint addr,
-                const uint8_t reg,
-                uint8_t *buf,
-                const uint8_t nbytes);
-
-/* I2C Function Definitions */
+/* I2C Function Definitions, the declaration has been moved to I2CFUNCTION.H*/
 // Write 1 byte to the specified register
 int reg_write(  i2c_inst_t *i2c, 
                 const uint addr, 
@@ -201,55 +192,69 @@ int reg_read(  i2c_inst_t *i2c,
     return num_bytes_read;
 }
 
-/*create a firfilter struct*/
-FIRFilter tempout;
+// /*create a firfilter struct*/
+// FIRFilter tempout;
 
 int main() {
+
+    int16_t acc_x;
+    int16_t acc_y;
+    int16_t acc_z;
+    float acc_x_f;
+    float acc_y_f;
+    float acc_z_f;
+
+    // Pins: use the i2c1 ascociated with pin 2 and 3. Read the documentation to know more.
+    const uint sda_pin = 2;
+    const uint scl_pin = 3;
+
+    // Ports
+    i2c_inst_t *i2c = i2c0;
+
+    // Buffer to store raw reads
+    uint8_t data[6];
 
     //to initialize the input output, choosen serial port
     stdio_init_all();
 
-    //configure adc on board
-    adc_init();
-    adc_set_temp_sensor_enabled(true);
-    adc_select_input(4); //actualy the 5th chanel what the phuc 
-
-    /*initialise firfilter*/
-    FIRFilter_Init(&tempout); /*resting the circuler buffer*/
-
-    /*I2C parts*/
     //Initialize I2C port at 400 kHz
     i2c_init(I2C_PORT, 400 * 1000);
 
     // I2C Pins
-    gpio_set_function(16, GPIO_FUNC_I2C);
-    gpio_set_function(17, GPIO_FUNC_I2C);
-    gpio_pull_up(16);
-    gpio_pull_up(17);
+    gpio_set_function(sda_pin, GPIO_FUNC_I2C);
+    gpio_set_function(scl_pin, GPIO_FUNC_I2C);
+    
+    // Read device ID to make sure that we can communicate with the ADXL343
+    reg_read(i2c, ADXL345_ADDR, REG_DEVID, data, 1);
+    if (data[0] != DEVID) {
+        printf("ERROR: Could not communicate with ADXL345\r\n");
+        while (true);
+    }
+
+// Read Power Control register
+    reg_read(i2c, ADXL343_ADDR, REG_POWER_CTL, data, 1);
+    printf("0x%02X\r\n", data[0]);
+
+    // Tell ADXL343 to start taking measurements by setting Measure bit to high
+    data[0] |= (1 << 3);
+    reg_write(i2c, ADXL343_ADDR, REG_POWER_CTL, &data[0], 1);
+
+    // Test: read Power Control register back to make sure Measure bit was set
+    reg_read(i2c, ADXL343_ADDR, REG_POWER_CTL, data, 1);
+    printf("0x%02X\r\n", data[0]);
+
+    // Wait before taking measurements
+    sleep_ms(2000);
+
+    /*initialise firfilter*/
+    FIRFilter_Init(); /*resting the circuler buffer*/
 
     //Call PCF8591 Initialize function
     
+    //Va0 = 5 * R1/(R1+R2)
 
     //infinite loop
     while (1) {
-
-        uint16_t raw = adc_read();
-        const float conversion = 3.3f / (1 << 12);
-        float voltage = raw * conversion; //basicly doing some filtered stuff
-        float temperature = 27 - (voltage - 0.706) / 0.001721; //adc to temp
-
-        /*Using the filter, in the guide, he's using an stm32 custom board so there sure are a lot of trouble here, 
-        seems that the driver that he write for the accelometer is XD*/
-
-        FIRFilter_Update(&tempout, temperature); //using lowpass filter something something that I'll figure out
-        
-        /*push raw and filtered data through serial*/
-        printf("%.4f,%.4f\r\n", temperature, tempout.out);
-
-        /*push data through dac*/
-        i2c_write_blocking();
-        
-        sleep_ms(1000);
     }
     
 
